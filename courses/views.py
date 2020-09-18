@@ -1,17 +1,13 @@
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.shortcuts import render
-# from rest_framework.decorators import api_view
-# replaces 
-# from django.http import HttpResponse, JsonResponse
-# from rest_framework.parsers import JSONParser
-# from rest_framework.response import Response
-# from django.http import Http404
-# from rest_framework.views import APIView
-from rest_framework import viewsets, status
+from rest_framework.decorators import api_view
+from rest_framework import renderers
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework import viewsets
 from rest_framework import permissions
 from rest_framework import generics
 from .models import Course, Snippet
-from django.contrib.auth.models import Group
 from .serializers import CourseSerializer, UserSerializer, GroupSerializer, SnippetSerializer
 from courses.permissions import IsOwnerOrReadOnly
 
@@ -19,14 +15,14 @@ class CourseView(viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     permission_classes = [permissions.IsAuthenticated]
-
-class UserViewSet(viewsets.ModelViewSet):
+    
+class UserViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    API endpoint that allows users to be viewed or edited.
+    This viewset automatically provides `list` and `detail` actions.
     """
-    queryset = User.objects.all().order_by('-date_joined')
+    queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
+
 
 class GroupViewSet(viewsets.ModelViewSet):
     """
@@ -35,28 +31,23 @@ class GroupViewSet(viewsets.ModelViewSet):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
     permission_classes = [permissions.IsAuthenticated]
+    
+class SnippetViewSet(viewsets.ModelViewSet):
+    """
+    This viewset automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
 
-class SnippetList(generics.ListCreateAPIView):
-    queryset = Snippet.objects.all()
-    serializer_class = SnippetSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
-
-
-class SnippetDetail(generics.RetrieveUpdateDestroyAPIView):
+    Additionally we also provide an extra `highlight` action.
+    """
     queryset = Snippet.objects.all()
     serializer_class = SnippetSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly,
-        IsOwnerOrReadOnly]
+                          IsOwnerOrReadOnly]
 
-class UserList(generics.ListAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
+    @action(detail=True, renderer_classes=[renderers.StaticHTMLRenderer])
+    def highlight(self, request, *args, **kwargs):
+        snippet = self.get_object()
+        return Response(snippet.highlighted)
 
-
-class UserDetail(generics.RetrieveAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
