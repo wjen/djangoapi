@@ -36,6 +36,7 @@ class Snippet(models.Model):
     class Meta:
         ordering = ['created']
 
+
 class Course(models.Model):
     name = models.CharField(max_length=200)
     language = models.CharField(max_length=200)

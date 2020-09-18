@@ -7,10 +7,17 @@ class CourseSerializer(serializers.HyperlinkedModelSerializer):
         model = Course
         fields = ('id', 'name', 'language', 'price', 'url')
 
-class UserSerializer(serializers.HyperlinkedModelSerializer):
+# class UserSerializer(serializers.HyperlinkedModelSerializer):
+#     class Meta:
+#         model = User
+#         fields = ['url', 'username', 'email', 'groups']
+
+class UserSerializer(serializers.ModelSerializer):
+    snippets = serializers.PrimaryKeyRelatedField(many=True, queryset=Snippet.objects.all())
+
     class Meta:
         model = User
-        fields = ['url', 'username', 'email', 'groups']
+        fields = ['id', 'username', 'snippets']
 
 class GroupSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
@@ -18,6 +25,8 @@ class GroupSerializer(serializers.HyperlinkedModelSerializer):
         fields = ['url', 'name']
         
 class SnippetSerializer(serializers.ModelSerializer):
+    owner = serializers.ReadOnlyField(source='owner.username')
+
     class Meta:
         model = Snippet
-        fields = ['id', 'title', 'code', 'linenos', 'language', 'style', 'url']
+        fields = ['id', 'title', 'code', 'linenos', 'language', 'style', 'owner']
